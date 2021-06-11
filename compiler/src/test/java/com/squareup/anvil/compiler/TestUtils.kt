@@ -34,6 +34,9 @@ internal val Result.parentInterface: Class<*>
 internal val Result.componentInterface: Class<*>
   get() = classLoader.loadClass("com.squareup.test.ComponentInterface")
 
+internal val Result.componentInterface2: Class<*>
+  get() = classLoader.loadClass("com.squareup.test.ComponentInterface2")
+
 internal val Result.componentInterfaceAnvilModule: Class<*>
   get() = classLoader
     .loadClass("$MODULE_PACKAGE_PREFIX.com.squareup.test.ComponentInterfaceAnvilModule")

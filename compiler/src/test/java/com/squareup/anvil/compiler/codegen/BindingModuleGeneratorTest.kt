@@ -7,6 +7,7 @@ import com.squareup.anvil.annotations.compat.MergeModules
 import com.squareup.anvil.compiler.MODULE_PACKAGE_PREFIX
 import com.squareup.anvil.compiler.compile
 import com.squareup.anvil.compiler.componentInterface
+import com.squareup.anvil.compiler.componentInterface2
 import com.squareup.anvil.compiler.componentInterfaceAnvilModule
 import com.squareup.anvil.compiler.contributingInterface
 import com.squareup.anvil.compiler.daggerModule1
@@ -434,6 +435,58 @@ class BindingModuleGeneratorTest(
         assertThat(isAbstract).isTrue()
         assertThat(isAnnotationPresent(Binds::class.java)).isTrue()
       }
+    }
+  }
+
+  @Test fun `excluded bindings only apply to the components they were excluded from`() {
+    compile(
+      """
+      package com.squareup.test
+      
+      import com.squareup.anvil.annotations.ContributesBinding
+      $import
+
+      interface ParentInterface
+      
+      @ContributesBinding(Any::class)
+      interface ContributingInterface : ParentInterface
+      
+      $annotation(Any::class)
+      interface ComponentInterface
+      
+      $annotation(
+        scope = Any::class,
+        exclude = [ContributingInterface::class]
+      )
+      interface ComponentInterface2
+      """
+    ) {
+      val modules = if (annotationClass == MergeModules::class) {
+        componentInterface.daggerModule.includes.toList()
+      } else {
+        componentInterface.anyDaggerComponent.modules
+      }
+      assertThat(modules).containsExactly(componentInterfaceAnvilModule.kotlin)
+
+      val methods = modules.first().java.declaredMethods
+      assertThat(methods).hasLength(1)
+
+      with(methods[0]) {
+        assertThat(returnType).isEqualTo(parentInterface)
+        assertThat(parameterTypes.toList()).containsExactly(contributingInterface)
+        assertThat(isAbstract).isTrue()
+        assertThat(isAnnotationPresent(Binds::class.java)).isTrue()
+      }
+
+      val modules2 = if (annotationClass == MergeModules::class) {
+        componentInterface2.daggerModule.includes.toList()
+      } else {
+        componentInterface2.anyDaggerComponent.modules
+      }
+      assertThat(modules2).containsExactly(componentInterfaceAnvilModule.kotlin)
+
+      val methods2 = modules.first().java.declaredMethods
+      assertThat(methods2).isEmpty()
     }
   }
 
